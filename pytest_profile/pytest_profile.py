@@ -1,3 +1,5 @@
+from cProfile import Profile
+from pstats import Stats
 import pytest
 import py
 
