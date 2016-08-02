@@ -2,18 +2,20 @@ from cProfile import Profile
 from pstats import Stats
 import pytest
 import py
+import os
+import time
 
-SHOULD_PROFILE_TESTS = False
-SHOULD_PRINT_RESULTS = True
-SHOULD_STORE_RESULTS = False
+SHOULD_PROFILE = None
+SHOULD_PRINT = None
+SHOULD_STORE = None
 BASEDIR = 'stats'
 
 def pytest_addoption(parser):
     general_group = parser.getgroup("general")
     general_group.addoption("--profile-tests",
-                            default=False,
                             action="store_true",
                             dest="profile_tests",
+                            default=False,
                             help="profile test results")
     general_group.addoption("--profile-tests-print",
                             action="store_true",
@@ -23,27 +25,28 @@ def pytest_addoption(parser):
     general_group.addoption("--profile-tests-store",
                             action="store_true",
                             default=False,
-                            dest="profile_tests_print",
+                            dest="profile_tests_store",
                             help="create a pickle file under ./stats/")
-    parser.addini('profile_test', SHOULD_PROFILE_TESTS)
-    parser.addini('profile_tests_print', SHOULD_PRINT_RESULTS)
-    parser.addini('profile_tests_store', SHOULD_STORE_RESULTS)
+
+def pytest_configure(config):
+    global SHOULD_PROFILE, SHOULD_PRINT, SHOULD_STORE, TIMEOUT
+    SHOULD_PROFILE = config.option.profile_tests
+    SHOULD_PRINT = config.option.profile_tests_print
+    SHOULD_STORE = config.option.profile_tests_store
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item):
-    if SHOULD_PROFILE_TESTS:
+def pytest_runtest_call(item):
+    if SHOULD_PROFILE:
         p = Profile()
         p.enable()
         yield
         p.disable()
         stats = Stats(p)
-        if SHOULD_PRINT_RESULTS:
+        if SHOULD_PRINT:
             stats.sort_stats('cumulative').print_stats(50)
-        if SHOULD_STORE_RESULTS:
-            if not os.path.exists(BASEDIR):
+        if SHOULD_STORE:
+             if not os.path.exists(BASEDIR):
                 os.mkdir(BASEDIR)
-            p.dump_stats(os.path.join(BASEDIR, '%s.pkl' % item.name))
-    else:
-        yield
+             p.dump_stats(os.path.join(BASEDIR, '%s.pkl' % item.name))
 
