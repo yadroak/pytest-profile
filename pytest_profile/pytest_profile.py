@@ -49,4 +49,6 @@ def pytest_runtest_call(item):
              if not os.path.exists(BASEDIR):
                 os.mkdir(BASEDIR)
              p.dump_stats(os.path.join(BASEDIR, '%s.pkl' % item.name))
+    else:
+        yield
 
